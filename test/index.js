@@ -33,6 +33,27 @@ describe('analyzeAllDeps', () => {
     })
   );
 
+  it('should skip workspace dependencies', () =>
+    expect(analyzeAllDeps({
+      name: 'analyze-deps',
+      license: 'MIT',
+      dependencies: {
+        semver: '^5.2.0',
+        skipMePlease: 'workspace:*'
+      }
+    })).to.eventually.deep.equal({
+      dependencies: {
+          semver: {
+            status: 'not-latest',
+            current: '^5.2.0',
+            latest: '5.3.0',
+            latestRange: '^5.3.0',
+            diff: 'minor'
+        }
+      }
+    })
+  );
+
   it('should analyze devDependencies', () =>
     expect(analyzeAllDeps({
       devDependencies: {

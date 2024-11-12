@@ -1,9 +1,7 @@
 const semver = require('semver');
-const mapValues = require('lodash.mapvalues');
 const promiseAll = require('promise-all');
 const getPackageData = require('package-json');
 const updateRange = require('./update-range');
-
 const nonDigitStartRegex = /^[^0-9]+/;
 
 const getDiff = (range, version) => {
@@ -12,8 +10,8 @@ const getDiff = (range, version) => {
   return semver.diff(rangeVersion, version);
 };
 
-const analyzePackage = (packageName, range) =>
-  getPackageData(packageName).then(result => {
+const analyzePackage = (packageName, range) => {
+  return getPackageData(packageName).then(result => {
     const latestVersion = result['dist-tags'].latest;
     const versions = Object.keys(result.versions);
     const latestRange = updateRange(range, latestVersion, versions);
@@ -50,17 +48,23 @@ const analyzePackage = (packageName, range) =>
       status: 'latest'
     };
   })
-  .catch(err => {
-    return {
-      status: 'error',
-      error: err.message
-    };
-  });
+    .catch(err => {
+      return {
+        status: 'error',
+        error: err.message
+      };
+    });
+}
 
-const analyzeDeps = deps => {
-  const tasks = mapValues(deps, (range, packageName) =>
-    analyzePackage(packageName, range)
-  );
+const analyzeDeps = (deps) => {
+  const tasks = Object.entries(deps).reduce((taskMap, [packageName, range]) => {
+    // if using a local/private package skip it.
+    if (range === 'workspace:*') {
+      return taskMap
+    }
+    taskMap[packageName] = analyzePackage(packageName, range)
+    return taskMap
+  }, {})
 
   return promiseAll(tasks);
 };
